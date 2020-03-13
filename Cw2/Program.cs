@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Xml.Linq;
+using System.Xml.Serialization;
+using System.Text.Json;
 
 namespace Cw2
 {
@@ -8,54 +11,124 @@ namespace Cw2
     {
         static void Main(string[] args)
         {
-            var path = @"C:\Users\s18451\Desktop\dane.csv";
-
-            var lines = File.ReadLines(path);
-
-            var sw = new StreamWriter("log.txt");
-
-            var hashSet = new HashSet<Student>();
-
-            var parsedDate = DateTime.Parse("2020-03-09");
-            var today = DateTime.Today;
-
-
-            foreach (var line in lines)
+            String path, resultPath, dataType;
+            if (args.Length != 3)
             {
-                String[] data = line.Split(",");
-                if(data.Length == 9)
+                path = "data.csv";
+                resultPath = "żesult.xml";
+                dataType = "xml";
+            } else
+            {
+                path = args[0];
+                resultPath = args[1];
+                dataType = args[2];
+            }
+            if (args[2] != "xml" || args[2] != "json")
+            {
+                args[2] = "xml";
+            }
+            try
+            {
+                var lines = File.ReadLines(path);
+
+                StreamWriter sw = new StreamWriter("log.txt");
+
+                var hashSet = new HashSet<Student>(new OwnComparer());
+
+                var parsedDate = DateTime.Parse("2020-03-09");
+                var today = DateTime.Today;
+
+
+                foreach (var line in lines)
                 {
-                    foreach (var item in data)
+                    String[] data = line.Split(",");
+                    if (data.Length == 9)
                     {
-                        if (string.IsNullOrEmpty(item))
+                        foreach (var item in data)
                         {
-                            sw.WriteLine(line);
-                        } else
-                        {
-                            var student = new Student() { FirstName = data[0], LastName = data[1], StudiesName = data[2], StudiesMode = data[3], Index = data[4], BirthDate = DateTime.Parse(data[5]).ToString(), Mail = data[6], Mother = data[7], Father = data[8] };
-                            if (!hashSet.Contains(student))
+                            if (string.IsNullOrEmpty(item))
                             {
-                                hashSet.Add(student);
+                                sw.WriteLine(line);
+                            }
+                            else
+                            {
+                                var student = new Student()
+                                {
+                                    FirstName = data[0],
+                                    LastName = data[1],
+                                    Studies = new Studies
+                                    {
+                                        StudiesName = data[2],
+                                        StudiesMode = data[3]
+                                    },
+                                    Index = data[4],
+                                    BirthDate = DateTime.Parse(data[5]).ToShortDateString(),
+                                    Mail = data[6],
+                                    Mother = data[7],
+                                    Father = data[8]
+                                };
+                                if (!hashSet.Contains(student))
+                                {
+                                    hashSet.Add(student);
+                                }
                             }
                         }
                     }
+                    else
+                    {
+                        sw.WriteLine(line);
+                    }
+                    //Console.WriteLine(line);
                 }
-                else
+                sw.Close();
+
+                var list = new List<Student>();
+                foreach (var item in hashSet)
                 {
-                    sw.WriteLine(line);
+                    list.Add(item);
                 }
-                //Console.WriteLine(line);
-            }
-            sw.Close();
 
-            foreach (var item in hashSet)
+                if (dataType == "xml")
+                {
+                    FileStream writer = new FileStream(resultPath, FileMode.Create);
+                    XmlRootAttribute xmlRootAttribute = new XmlRootAttribute();
+                    xmlRootAttribute.ElementName = "uczelnia";
+
+                    XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
+                    ns.Add("createdAt", today.ToShortDateString());
+                    ns.Add("author", "Michał Pazio");
+
+                    XmlSerializer serializer = new XmlSerializer(typeof(List<Student>), xmlRootAttribute);
+                    serializer.Serialize(writer, list, ns);
+                }
+                if (dataType == "json")
+                {
+                    var options = new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    };
+
+                    var jsonString = JsonSerializer.Serialize(list, options);
+                    File.WriteAllText(resultPath, jsonString);
+                }
+
+
+
+                //Console.WriteLine(today.ToShortDateString());
+            }
+            catch (ArgumentException)
             {
-                Console.WriteLine(item);
+                Console.WriteLine("Podana ścieżka jest niepoprawna");
+                StreamWriter sw = new StreamWriter("log.txt");
+                sw.WriteLine("Podana ścieżka jest niepoprawna");
             }
-
-
-
-            //Console.WriteLine(today.ToShortDateString());
+            catch (FileNotFoundException)
+            {
+                Console.WriteLine("Plik nazwa nie istnieje");
+                StreamWriter sw = new StreamWriter("log.txt");
+                sw.WriteLine("Plik nazwa nie istnieje");
+            }
+            
         }
     }
 }
