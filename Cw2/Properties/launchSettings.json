@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "Cw2": {
-      "commandName": "Project",
-      "commandLineArgs": "\"C:\\Users\\Miciu\\Desktop\\dane.csv\" \"C:\\Users\\Miciu\\Desktop\\APBD\\Cw2\\Cw2\\bin\\dane.xml\" xml"
-    }
-  }
-}
